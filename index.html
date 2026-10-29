@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>프로거</title>
+<style>
+  /* 아이폰 사파리: 버튼을 누르다 글자가 선택되거나 길게 눌러 복사 메뉴가 뜨지 않게 */
+  *, *::before, *::after { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body {
+    width:100%; height:100%; overflow:hidden; background:#000;
+    font-family:-apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; color:#fff;
+    touch-action:none;
+  }
+  #stage { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:6px 8px; }
+  #wrap { position:relative; background:#0a1a0a; }
+  #game { display:block; touch-action:none; image-rendering:pixelated; }
+  #overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; padding:14px; background:rgba(0,0,0,.82); }
+  #overlay.hidden { display:none; }
+  #overlay h1 { font-size:46px; font-weight:900; letter-spacing:.06em; color:#7dff7d; text-shadow:0 3px 0 #1a7a1a; }
+  #overlay h2 { font-size:24px; font-weight:900; }
+  #overlay p { font-size:13px; color:#e6e6e6; line-height:1.6; }
+  #overlay .big { font-size:18px; font-weight:800; color:#ffd23a; }
+  #overlay .help { font-size:12px; color:#bdbdbd; line-height:1.7; }
+  #overlay button { margin-top:6px; background:linear-gradient(180deg,#c8ffc8,#4ac84a); color:#032403; font-weight:900; font-size:17px; border:none; border-radius:999px; padding:12px 34px; box-shadow:0 4px 0 #1a7a1a; cursor:pointer; }
+  #overlay button:active { transform:translateY(3px); box-shadow:0 1px 0 #1a7a1a; }
+  #top { position:absolute; right:3px; top:2px; display:flex; gap:6px; z-index:2; }
+  #top button { position:relative; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.25); color:#fff; width:30px; height:30px; border-radius:8px; font-size:13px; cursor:pointer; }
+  #top button::after { content:''; position:absolute; inset:-7px -4px; }
+  /* 폰 조작판: 한 번 누르면 한 칸 뛴다 (꾹 누르면 계속 뛴다) */
+  #controls { display:none; width:100%; justify-content:center; align-items:center; padding:0 10px; }
+  #dpad { display:grid; grid-template-columns:repeat(3,64px); grid-template-rows:repeat(3,64px); gap:4px; touch-action:none; }
+  #dpad button { border-radius:16px; border:2px solid rgba(255,255,255,.25); background:rgba(255,255,255,.1); color:rgba(255,255,255,.75); font-size:26px; touch-action:none; }
+  #dpad button.on { background:rgba(125,255,125,.35); color:#fff; transform:scale(.94); }
+  #dpad .u { grid-column:2; grid-row:1; } #dpad .l { grid-column:1; grid-row:2; } #dpad .r { grid-column:3; grid-row:2; } #dpad .d { grid-column:2; grid-row:3; }
+  .pc { display:none; }
+  @media (pointer:fine) { .pc { display:inline; } .touch { display:none; } }
+  @media (pointer:coarse) { #controls { display:flex; } }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="wrap">
+    <canvas id="game"></canvas>
+    <div id="top">
+      <button id="muteBtn" title="소리 (M)">🔊</button>
+      <button id="pauseBtn" title="일시정지 (P)">⏸</button>
+    </div>
+    <div id="overlay">
+      <h1>프로거</h1>
+      <p>도로와 강을 건너 <b>집 다섯 칸</b>에 개구리를 데려다 줘요! 🐸<br>차에 치이거나 물에 빠지면 안 돼요</p>
+      <div class="help">
+        <span class="pc">⌨️ 방향키 / WASD 로 한 칸씩 뛰기 · P 일시정지 · M 소리</span>
+        <span class="touch">👆 아래 화살표 버튼으로 뛰기 · 화면을 쓸어도 돼요</span>
+      </div>
+      <button id="startBtn">시작하기</button>
+    </div>
+  </div>
+  <div id="controls">
+    <div id="dpad"><button class="u" data-d="0">▲</button><button class="l" data-d="3">◀</button><button class="r" data-d="1">▶</button><button class="d" data-d="2">▼</button></div>
+  </div>
+</div>
+<script src="logic.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
