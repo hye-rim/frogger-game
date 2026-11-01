@@ -5,27 +5,28 @@ const LOGIC_FROGGER = (() => {
   const HOME_ROW = 0, MEDIAN = 6, START_ROW = 12;
   const RIVER = [1, 2, 3, 4, 5], ROAD = [7, 8, 9, 10, 11];
   const BAYS = [1, 4, 7, 10, 13];                         // 집 다섯 칸의 가운데 칸
+  const EDGE = 0.25;                                      // 통나무·거북이 가장자리 여유(칸)
   const BAY_REACH = 0.7;                                  // 이 거리 안이면 집에 들어간 것
   const START = { x: 7, y: 12 };
-  const START_LIVES = 3, TIME_LIMIT = 30, HOP = 0.11, DYING = 1.3, CLEAR_TIME = 2.6;
+  const START_LIVES = 5, TIME_LIMIT = 45, HOP = 0.11, DYING = 1.3, CLEAR_TIME = 2.6;
   const POINTS = { step: 10, home: 50, fly: 200, lady: 200, clear: 1000, halfSecond: 10 };
-  const EXTRA_LIFE_AT = 20000;
+  const EXTRA_LIFE_AT = 10000;
   const DIVE_CYCLE = 7;                                   // 거북이: 떠 있음 4.2 · 가라앉는 중 0.8 · 물속 1.2 · 떠오르는 중 0.8
   const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
-  const speedFactor = (level) => Math.min(2.2, 1 + 0.09 * (level - 1));
+  const speedFactor = (level) => Math.min(1.8, 1 + 0.05 * (level - 1));      // 판마다 5%씩 빨라져 1.8배까지
 
   // 한 줄마다: 줄 번호, 종류, 길이, 사이 빈 칸, 방향(1 오른쪽 · -1 왼쪽), 기본 속도(칸/초)
   const LANES = [
     { row: 1, kind: 'log', len: 4, gap: 3, dir: 1, speed: 1.6 },
-    { row: 2, kind: 'turtle', len: 3, gap: 3, dir: -1, speed: 1.5, diveFrom: 2 },
-    { row: 3, kind: 'log', len: 6, gap: 4, dir: 1, speed: 3.0 },
+    { row: 2, kind: 'turtle', len: 3, gap: 3, dir: -1, speed: 1.5, diveFrom: 3 },
+    { row: 3, kind: 'log', len: 6, gap: 4, dir: 1, speed: 2.4 },
     { row: 4, kind: 'log', len: 3, gap: 3, dir: 1, speed: 1.3 },
-    { row: 5, kind: 'turtle', len: 2, gap: 3, dir: -1, speed: 1.8, diveFrom: 1 },
+    { row: 5, kind: 'turtle', len: 2, gap: 3, dir: -1, speed: 1.8, diveFrom: 2 },
     { row: 7, kind: 'truck', len: 3, gap: 7, dir: -1, speed: 1.5 },
-    { row: 8, kind: 'racer', len: 1, gap: 7, dir: 1, speed: 4.8 },
-    { row: 9, kind: 'car', len: 1, gap: 4, dir: -1, speed: 2.4 },
+    { row: 8, kind: 'racer', len: 1, gap: 8, dir: 1, speed: 3.4 },
+    { row: 9, kind: 'car', len: 1, gap: 5, dir: -1, speed: 2.0 },
     { row: 10, kind: 'dozer', len: 2, gap: 5, dir: 1, speed: 1.8 },
-    { row: 11, kind: 'car', len: 1, gap: 4, dir: -1, speed: 1.5 },
+    { row: 11, kind: 'car', len: 1, gap: 5, dir: -1, speed: 1.5 },
   ];
   const isRiver = (r) => r >= 1 && r <= 5;
   const isRoad = (r) => r >= 7 && r <= 11;
@@ -52,7 +53,7 @@ const LOGIC_FROGGER = (() => {
         if (def.kind === 'turtle' && st.level >= def.diveFrom) it.dives = st.level >= def.diveFrom + 2 || i % 2 === 0;
         items.push(it);
       }
-      if (def.row === 3 && st.level >= 2) { items[0].croc = true; if (st.level >= 4 && items.length > 3) items[3].croc = true; }
+      if (def.row === 3 && st.level >= 3) { items[0].croc = true; if (st.level >= 5 && items.length > 3) items[3].croc = true; }
       return { ...def, span: n * spacing, items };
     });
   }
@@ -71,7 +72,7 @@ const LOGIC_FROGGER = (() => {
   function platformAt(st, row, cx) {
     const lane = laneOf(st, row);
     if (!lane) return null;
-    for (const it of lane.items) if (cx >= it.x && cx <= it.x + it.len && solid(st, lane, it)) return { lane, it };
+    for (const it of lane.items) if (cx >= it.x - EDGE && cx <= it.x + it.len + EDGE && solid(st, lane, it)) return { lane, it };      // 가장자리에서 조금 벗어나도 봐 준다
     return null;
   }
 
@@ -85,7 +86,7 @@ const LOGIC_FROGGER = (() => {
     st.bays = [false, false, false, false, false];
     st.bayFx = null; st.fxWait = 3 + st.rand() * 3;
     st.lady = null; st.ladyWait = 8 + st.rand() * 6;
-    st.snake = level >= 2 ? { x: 3, dir: 1 } : null;
+    st.snake = level >= 3 ? { x: 3, dir: 1 } : null;
     st.phase = 'play'; st.clearT = 0;
     buildLanes(st);
     resetFrog(st);
@@ -175,7 +176,7 @@ const LOGIC_FROGGER = (() => {
       const empty = st.bays.map((b, i) => (b ? -1 : i)).filter((i) => i >= 0);
       if (st.fxWait <= 0 && empty.length) {
         const bay = empty[Math.floor(st.rand() * empty.length)];
-        const gator = st.level >= 3 && st.rand() < 0.5;
+        const gator = st.level >= 4 && st.rand() < 0.5;
         st.bayFx = { kind: gator ? 'gator' : 'fly', bay, t: gator ? 5 : 4.5 };
         emit(st, { t: 'bayfx', kind: st.bayFx.kind, bay });
       }
@@ -197,8 +198,8 @@ const LOGIC_FROGGER = (() => {
     const f = st.frog;
     // 도로: 차에 치임
     for (const lane of st.lanes) {
-      if (!isRoad(lane.row) || Math.abs(f.y - lane.row) >= 0.65) continue;
-      for (const it of lane.items) if (f.x + 0.15 < it.x + it.len - 0.05 && f.x + 0.85 > it.x + 0.05) { emit(st, { t: 'squash' }); return die(st, 'car'); }
+      if (!isRoad(lane.row) || Math.abs(f.y - lane.row) >= 0.55) continue;
+      for (const it of lane.items) if (f.x + 0.25 < it.x + it.len - 0.1 && f.x + 0.75 > it.x + 0.1) { emit(st, { t: 'squash' }); return die(st, 'car'); }
     }
     // 가운데 둔덕의 뱀
     if (st.snake && Math.abs(f.y - MEDIAN) < 0.5 && Math.abs(f.x - st.snake.x) < 0.8) return die(st, 'snake');
